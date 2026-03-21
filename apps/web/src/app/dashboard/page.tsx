@@ -53,11 +53,11 @@ export default function DashboardPage() {
                     {nairaBalance > 0 ? 'Ready for next transactions' : 'Fund your wallet to relay transactions'}
                   </span>
                 </div>
-                {nairaBalance < 200 && (
-                   <button className="bg-on-primary text-primary-container px-4 py-2 text-xs font-bold rounded shadow-sm hover:opacity-90 transition-opacity">
-                     Top Up Naira
-                   </button>
-                )}
+                <button 
+                  onClick={() => router.push('/deposit')}
+                  className="bg-on-primary text-primary-container px-4 py-2 text-xs font-bold rounded shadow-sm hover:opacity-90 transition-opacity cursor-pointer">
+                  Top Up Naira
+                </button>
               </div>
             </div>
           </section>

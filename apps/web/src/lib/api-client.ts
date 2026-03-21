@@ -5,6 +5,17 @@ export interface UserDTO {
     nairaBalance: number;
 }
 
+export const verifyPaystackPayment = async (reference: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE_URL}/webhooks/paystack/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Verification failed');
+    return data;
+};
+
 export const fetchUserBalance = async (walletAddress: string): Promise<UserDTO | null> => {
     try {
         const res = await fetch(`${API_BASE_URL}/users/${walletAddress}`);
