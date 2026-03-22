@@ -122,18 +122,18 @@ export default function SwapPage() {
   };
 
   return (
-    <main className="min-h-screen pt-16 bg-[#0A0A0B]">
+    <main className="min-h-screen pt-16 bg-background">
       <TopNavBar />
       <div className="max-w-lg mx-auto px-6 py-20 flex flex-col items-center">
-        <h1 className="text-3xl font-extrabold tracking-tighter mb-2 text-white text-center">Gasless Swap</h1>
-        <p className="text-[#86948A] mb-8 font-mono text-xs uppercase tracking-wider text-center">Powered by Jupiter & Gasit Insti-Relayer</p>
+        <h1 className="text-3xl font-extrabold tracking-tighter mb-2 text-on-surface text-center">Gasless Swap</h1>
+        <p className="text-outline mb-8 font-mono text-xs uppercase tracking-wider text-center">Powered by Jupiter & Gasit Insti-Relayer</p>
 
-        <div className="w-full bg-[#1C1B1C] border border-[#3C4A42] p-6 rounded-xl shadow-2xl relative">
+        <div className="w-full bg-surface-container border border-outline-variant p-6 rounded-xl shadow-2xl relative">
           
           <div className="mb-6 px-2">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-[#86948A] font-semibold text-sm">Gasit Automation Fee</span>
-              <span className="font-mono text-[#10B981] font-bold">
+              <span className="text-outline font-semibold text-sm">Gasit Automation Fee</span>
+              <span className="font-mono text-primary font-bold">
                 {dynamicFee !== null ? `₦ ${dynamicFee.toFixed(2)}` : "Calculating..."}
               </span>
             </div>
@@ -141,14 +141,14 @@ export default function SwapPage() {
 
           <div className="mb-2">
             <div className="flex justify-between items-center mb-2">
-              <label className="text-xs font-semibold text-[#BBCABF]">You Pay</label>
-              <span className="text-[10px] font-mono text-[#86948A]">Bal: 0.00</span>
+              <label className="text-xs font-semibold text-on-surface-variant">You Pay</label>
+              <span className="text-[10px] font-mono text-outline">Bal: 0.00</span>
             </div>
-            <div className="flex items-center gap-2 bg-[#131314] border border-[#3C4A42] rounded p-4">
+            <div className="flex items-center gap-2 bg-surface border border-outline-variant rounded p-4">
               <select 
                 value={inputMint}
                 onChange={(e) => setInputMint(e.target.value)}
-                className="bg-transparent text-white font-bold outline-none appearance-none cursor-pointer"
+                className="bg-transparent text-on-surface font-bold outline-none appearance-none cursor-pointer"
               >
                 <option value={USDC_MINT}>USDC</option>
                 <option value={SOL_MINT}>SOL</option>
@@ -158,28 +158,28 @@ export default function SwapPage() {
                 placeholder="0.00" 
                 value={inputAmount}
                 onChange={(e) => setInputAmount(e.target.value)}
-                className="w-full bg-transparent text-right text-2xl font-mono text-white outline-none"
+                className="w-full bg-transparent text-right text-2xl font-mono text-on-surface outline-none"
               />
             </div>
           </div>
 
           <div 
              onClick={handleSwap}
-             className="absolute left-1/2 -translate-x-1/2 top-[125px] w-8 h-8 rounded-full bg-[#1C1B1C] border border-[#3C4A42] flex items-center justify-center cursor-pointer hover:bg-[#2a2a2b] transition-colors z-10"
+             className="absolute left-1/2 -translate-x-1/2 top-[125px] w-8 h-8 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center cursor-pointer hover:bg-surface-container-high transition-colors z-10"
           >
-            <span className="material-symbols-outlined text-[#86948A] text-sm transform transition-all hover:rotate-180">swap_vert</span>
+            <span className="material-symbols-outlined text-outline text-sm transform transition-all hover:rotate-180">swap_vert</span>
           </div>
 
           <div className="mb-6 mt-4">
             <div className="flex justify-between items-center mb-2">
-              <label className="text-xs font-semibold text-[#BBCABF]">You Receive</label>
-              <span className="text-[10px] font-mono text-[#86948A]">Bal: 0.00</span>
+              <label className="text-xs font-semibold text-on-surface-variant">You Receive</label>
+              <span className="text-[10px] font-mono text-outline">Bal: 0.00</span>
             </div>
-            <div className={`flex items-center gap-2 bg-[#131314] border border-[#3C4A42] rounded p-4 ${isQuoting ? 'opacity-50 blur-[1px]' : ''} transition-all`}>
+            <div className={`flex items-center gap-2 bg-surface border border-outline-variant rounded p-4 ${isQuoting ? 'opacity-50 blur-[1px]' : ''} transition-all`}>
               <select 
                 value={outputMint}
                 onChange={(e) => setOutputMint(e.target.value)}
-                className="bg-transparent text-white font-bold outline-none appearance-none cursor-pointer"
+                className="bg-transparent text-on-surface font-bold outline-none appearance-none cursor-pointer"
               >
                 <option value={SOL_MINT}>SOL</option>
                 <option value={USDC_MINT}>USDC</option>
@@ -188,24 +188,24 @@ export default function SwapPage() {
                 type="number" 
                 placeholder={isQuoting ? "Fetching..." : "0.00"} 
                 value={outAmountUI}
-                className="w-full bg-transparent text-right text-2xl font-mono text-white outline-none"
+                className="w-full bg-transparent text-right text-2xl font-mono text-on-surface outline-none"
                 readOnly
               />
             </div>
           </div>
 
-          <div className="space-y-2 mb-6 p-4 bg-[#131314] rounded border border-[#3C4A42]">
+          <div className="space-y-2 mb-6 p-4 bg-surface rounded border border-outline-variant">
              <div className="flex justify-between text-xs font-mono">
-               <span className="text-[#86948A]">Solana Network Fee</span>
-               <span className="text-[#10B981] line-through">0.000005 SOL</span>
+               <span className="text-outline">Solana Network Fee</span>
+               <span className="text-primary line-through">0.000005 SOL</span>
              </div>
              <div className="flex justify-between text-xs font-mono">
-               <span className="text-[#86948A]">Gasit Sponsorship</span>
-               <span className="text-[#10B981] font-bold">100% COVERED</span>
+               <span className="text-outline">Gasit Sponsorship</span>
+               <span className="text-primary font-bold">100% COVERED</span>
              </div>
-             <div className="flex justify-between text-xs font-mono border-t border-[#3C4A42] pt-2 mt-2">
-               <span className="text-[#86948A]">Gasit Automation Fee</span>
-               <span className="text-[#10B981] font-bold">
+             <div className="flex justify-between text-xs font-mono border-t border-outline-variant pt-2 mt-2">
+               <span className="text-outline">Gasit Automation Fee</span>
+               <span className="text-primary font-bold">
                   {dynamicFee !== null ? `₦ ${dynamicFee.toFixed(2)}` : "Calculating..."}
                </span>
              </div>
@@ -215,7 +215,7 @@ export default function SwapPage() {
             disabled={connected && (!quote || isQuoting || isSwapping)}
             onClick={handleButtonClick}
             type="button" 
-            className="w-full bg-[#10B981] text-[#003824] font-bold text-lg py-4 rounded hover:brightness-110 disabled:opacity-50 transition-all cursor-pointer flex justify-center items-center"
+            className="w-full bg-primary text-on-primary font-bold text-lg py-4 rounded hover:brightness-110 disabled:opacity-50 transition-all cursor-pointer flex justify-center items-center"
           >
             {isSwapping ? (
               <span className="animate-spin material-symbols-outlined mr-2">refresh</span>

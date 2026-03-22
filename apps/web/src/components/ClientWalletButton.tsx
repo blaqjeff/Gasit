@@ -19,7 +19,7 @@ export function ClientWalletButton({ variant = 'navbar' }: Props) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const heroClass = "bg-[#10B981] text-[#0A0A0B] px-10 py-4 font-bold text-lg rounded shadow-lg hover:scale-105 transition-transform cursor-pointer";
+  const heroClass = "bg-primary text-on-primary px-10 py-4 font-bold text-lg rounded shadow-lg hover:scale-105 transition-transform cursor-pointer";
 
   if (!mounted) {
     if (variant === 'hero') {
@@ -29,7 +29,7 @@ export function ClientWalletButton({ variant = 'navbar' }: Props) {
         </button>
       );
     }
-    return <div className="w-[140px] h-[40px] bg-[#2a2a2b] animate-pulse rounded"></div>;
+    return <div className="w-[140px] h-[40px] bg-surface-container-high animate-pulse rounded"></div>;
   }
 
   if (variant === 'hero') {
@@ -51,7 +51,7 @@ export function ClientWalletButton({ variant = 'navbar' }: Props) {
   return (
     <div className="wallet-btn-container">
       <WalletMultiButton 
-        className="!bg-[#2a2a2b] !border !border-[#3C4A42] !text-sm !font-semibold !text-[#10B981] hover:!bg-[#3C4A42] !transition-all active:!scale-95 !rounded-[0.25rem] !h-[40px] !px-4"
+        className="!bg-surface-container-high !border !border-outline-variant !text-sm !font-semibold !text-primary hover:!bg-surface-container-highest !transition-all active:!scale-95 !rounded-[0.25rem] !h-[40px] !px-4"
       >
         {publicKey ? undefined : "Connect Wallet"}
       </WalletMultiButton>

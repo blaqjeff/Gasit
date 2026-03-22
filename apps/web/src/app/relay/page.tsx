@@ -87,60 +87,60 @@ export default function RelayTransferPage() {
   };
 
   return (
-    <main className="min-h-screen pt-16 bg-[#0A0A0B]">
+    <main className="min-h-screen pt-16 bg-background">
       <TopNavBar />
       <div className="max-w-2xl mx-auto px-6 py-20">
-        <div className="bg-[#1C1B1C] border border-[#3C4A42] p-8 rounded-xl shadow-2xl">
-          <h1 className="text-3xl font-extrabold tracking-tighter mb-2 text-white">Gas-it</h1>
-          <p className="text-[#86948A] mb-8 font-mono text-xs uppercase tracking-wider">Gasless SPL & SOL Dispatch</p>
+        <div className="bg-surface-container border border-outline-variant p-8 rounded-xl shadow-2xl">
+          <h1 className="text-3xl font-extrabold tracking-tighter mb-2 text-on-surface">Gas-it</h1>
+          <p className="text-outline mb-8 font-mono text-xs uppercase tracking-wider">Gasless SPL & SOL Dispatch</p>
 
           <form className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold mb-2 text-[#BBCABF]">Destination Address</label>
+              <label className="block text-sm font-semibold mb-2 text-on-surface-variant">Destination Address</label>
               <input 
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
                 type="text" 
                 placeholder="Solana Address (e.g. 7oA..." 
-                className="w-full bg-[#131314] border border-[#3C4A42] rounded px-4 py-3 text-white focus:outline-none focus:border-[#10B981] transition-colors font-mono text-sm"
+                className="w-full bg-surface border border-outline-variant rounded px-4 py-3 text-on-surface focus:outline-none focus:border-primary transition-colors font-mono text-sm"
               />
             </div>
             
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-1">
-                <label className="block text-sm font-semibold mb-2 text-[#BBCABF]">Asset</label>
+                <label className="block text-sm font-semibold mb-2 text-on-surface-variant">Asset</label>
                 <select 
                   value={asset}
                   onChange={(e) => setAsset(e.target.value)}
-                  className="w-full bg-[#131314] border border-[#3C4A42] rounded px-4 py-3 text-white focus:outline-none focus:border-[#10B981] transition-colors font-mono text-sm appearance-none"
+                  className="w-full bg-surface border border-outline-variant rounded px-4 py-3 text-on-surface focus:outline-none focus:border-primary transition-colors font-mono text-sm appearance-none"
                 >
                   <option>SOL</option>
                   <option>USDC</option>
                 </select>
               </div>
               <div className="col-span-2">
-                <label className="block text-sm font-semibold mb-2 text-[#BBCABF]">Amount</label>
+                <label className="block text-sm font-semibold mb-2 text-on-surface-variant">Amount</label>
                 <input 
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   type="number" 
                   step="any"
                   placeholder="0.00" 
-                  className="w-full bg-[#131314] border border-[#3C4A42] rounded px-4 py-3 text-white focus:outline-none focus:border-[#10B981] transition-colors font-mono text-sm"
+                  className="w-full bg-surface border border-outline-variant rounded px-4 py-3 text-on-surface focus:outline-none focus:border-primary transition-colors font-mono text-sm"
                 />
               </div>
             </div>
 
             <div className="flex justify-between items-center mb-6 px-2">
-              <span className="text-[#86948A] font-semibold text-sm">Gasit Automation Fee</span>
-              <span className="font-mono text-[#10B981] font-bold">₦ 100.00</span>
+              <span className="text-outline font-semibold text-sm">Gasit Automation Fee</span>
+              <span className="font-mono text-primary font-bold">₦ 100.00</span>
             </div>
 
             <button 
               type="button" 
               onClick={handleButtonClick}
               disabled={connected && (isTransferring || !destination || !amount)}
-              className="w-full bg-[#10B981] flex justify-center items-center text-[#003824] font-bold text-lg py-4 rounded hover:brightness-110 disabled:opacity-50 transition-all"
+              className="w-full bg-primary flex justify-center items-center text-on-primary font-bold text-lg py-4 rounded hover:brightness-110 disabled:opacity-50 transition-all"
             >
               {isTransferring ? (
                 <span className="animate-spin material-symbols-outlined mr-2">refresh</span>

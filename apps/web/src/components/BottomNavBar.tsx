@@ -1,23 +1,39 @@
+"use client";
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export function BottomNavBar() {
+  const pathname = usePathname();
+
+  const getLinkClass = (path: string) => {
+    const isActive = pathname === path;
+    return `flex flex-col items-center justify-center py-1 w-full transition-colors ${
+      isActive ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'
+    }`;
+  };
+
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 h-20 bg-[#131314] border-t border-[#3C4A42]">
-      <Link href="/" className="flex flex-col items-center justify-center text-[#10B981] bg-[#1C1B1C] rounded-md py-1 w-full">
+    <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 h-20 bg-surface border-t border-outline-variant">
+      <Link href="/dashboard" className={getLinkClass("/dashboard")}>
         <span className="material-symbols-outlined">home</span>
         <span className="text-[10px] uppercase tracking-widest font-medium mt-1">Home</span>
       </Link>
-      <Link href="/transactions" className="flex flex-col items-center justify-center text-gray-500 py-1 w-full hover:text-white transition-colors">
+      <Link href="/swap" className={getLinkClass("/swap")}>
+        <span className="material-symbols-outlined">swap_horiz</span>
+        <span className="text-[10px] uppercase tracking-widest font-medium mt-1">Swap</span>
+      </Link>
+      <Link href="/relay" className={getLinkClass("/relay")}>
+        <span className="material-symbols-outlined">bolt</span>
+        <span className="text-[10px] uppercase tracking-widest font-medium mt-1">Gas-it</span>
+      </Link>
+      <Link href="/assets" className={getLinkClass("/assets")}>
+        <span className="material-symbols-outlined">account_balance_wallet</span>
+        <span className="text-[10px] uppercase tracking-widest font-medium mt-1">Assets</span>
+      </Link>
+      <Link href="/transactions" className={getLinkClass("/transactions")}>
         <span className="material-symbols-outlined">receipt_long</span>
         <span className="text-[10px] uppercase tracking-widest font-medium mt-1">Txns</span>
-      </Link>
-      <Link href="/wallet" className="flex flex-col items-center justify-center text-gray-500 py-1 w-full hover:text-white transition-colors">
-        <span className="material-symbols-outlined">local_gas_station</span>
-        <span className="text-[10px] uppercase tracking-widest font-medium mt-1">Wallet</span>
-      </Link>
-      <Link href="/profile" className="flex flex-col items-center justify-center text-gray-500 py-1 w-full hover:text-white transition-colors">
-        <span className="material-symbols-outlined">person</span>
-        <span className="text-[10px] uppercase tracking-widest font-medium mt-1">Profile</span>
       </Link>
     </nav>
   );

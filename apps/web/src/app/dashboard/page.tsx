@@ -3,25 +3,40 @@
 import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useRouter } from 'next/navigation';
-import { fetchUserBalance, UserDTO } from '@/lib/api-client';
+import { fetchUserBalance, UserDTO, fetchUserAssets, AssetDTO } from '@/lib/api-client';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
+import { SOL_MINT } from '@/lib/jupiter';
 
 export default function DashboardPage() {
   const { publicKey } = useWallet();
   const router = useRouter();
   const [userData, setUserData] = useState<UserDTO | null>(null);
+  const [assets, setAssets] = useState<AssetDTO[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (publicKey) {
-      setLoading(true);
-      fetchUserBalance(publicKey.toString()).then((data) => {
-        setUserData(data);
-        setLoading(false);
-      });
-    } else {
-      setUserData(null);
+    async function refreshData() {
+      if (publicKey) {
+        setLoading(true);
+        try {
+          // Fetch Naira Balance
+          const data = await fetchUserBalance(publicKey.toString());
+          setUserData(data);
+
+          // Fetch All Assets (SOL + SPL)
+          const assetData = await fetchUserAssets(publicKey.toString());
+          setAssets(assetData);
+        } catch (error) {
+          console.error("Dashboard refresh error:", error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setUserData(null);
+        setAssets([]);
+      }
     }
+    refreshData();
   }, [publicKey]);
 
   const nairaBalance = userData?.nairaBalance || 0;
@@ -40,14 +55,14 @@ export default function DashboardPage() {
           <section className="mb-8">
             <div className="bg-primary-container p-8 rounded-xl border border-primary flex flex-col items-start relative overflow-hidden shadow-lg">
               <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBqMFWSIyZo1KO7nQIsT8vgyX32LFNnEXI6LeHX0f_4EO21kLGTO8ongeqLeTF-nUV0PpDdbNk3R4st0DqIGg4U9lgEtY44i3DrF2MB98_yaHmi11sn18pvkHdELXu-X1nf6DNQwV0Z7wt1_0osS_9c8ir2J3TIJ48LZjJOSp7XIQxzRVsa4yLM_RUp2kZvIIcoijrcHW8A6fH-a14uSCtKJpph1kdYsdEd0VR9a49dpLrADJX7u-553iWQd8j8dC1hP5cu7eQplPI')" }}></div>
-              <span className="text-on-primary-container text-xs font-bold uppercase tracking-[0.2em] mb-2 opacity-80">Gasit Balance</span>
-              <div className="flex items-baseline gap-2">
-                <h1 className="text-on-primary-container text-5xl font-extrabold tracking-tighter font-mono leading-none">
+              <span className="text-on-primary-container text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] mb-2 opacity-80">Gasit Balance</span>
+              <div className="flex items-baseline gap-2 overflow-hidden">
+                <h1 className="text-on-primary-container text-3xl md:text-5xl font-extrabold tracking-tighter font-mono leading-none truncate">
                   ₦{loading ? '...' : nairaBalance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
                 </h1>
               </div>
-              <div className="mt-4 flex items-center justify-between w-full">
-                <div className="flex items-center gap-2 text-on-primary-container text-sm opacity-90">
+              <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
+                <div className="flex items-center gap-2 text-on-primary-container text-xs md:text-sm opacity-90">
                   <span className="material-symbols-outlined text-sm">bolt</span>
                   <span className="font-medium">
                     {nairaBalance > 0 ? 'Ready for next transactions' : 'Fund your wallet to relay transactions'}
@@ -55,7 +70,7 @@ export default function DashboardPage() {
                 </div>
                 <button 
                   onClick={() => router.push('/deposit')}
-                  className="bg-on-primary text-primary-container px-4 py-2 text-xs font-bold rounded shadow-sm hover:opacity-90 transition-opacity cursor-pointer">
+                  className="w-full sm:w-auto bg-on-primary text-primary-container px-6 py-3 sm:py-2 text-xs font-bold rounded shadow-sm hover:opacity-90 transition-opacity cursor-pointer">
                   Top Up Naira
                 </button>
               </div>
@@ -69,7 +84,7 @@ export default function DashboardPage() {
               className="flex items-center justify-center gap-3 bg-surface-container border border-outline-variant py-5 rounded-xl text-primary font-bold hover:bg-surface-container-high transition-all active:scale-95 group cursor-pointer disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-2xl group-hover:-translate-y-1 transition-transform">north</span>
-              <span className="uppercase tracking-widest text-sm">Send</span>
+              <span className="uppercase tracking-widest text-sm">Gas-it</span>
             </button>
             <button 
               onClick={() => router.push('/swap')}
@@ -84,25 +99,66 @@ export default function DashboardPage() {
           <section className="space-y-6">
             <div className="flex justify-between items-end border-b border-outline-variant pb-2">
               <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-outline">Portfolio Assets</h2>
-              <span className="text-[10px] uppercase text-outline font-mono">Simulated data</span>
             </div>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-surface-container-low border border-outline-variant rounded-xl hover:bg-surface-container transition-colors cursor-pointer">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-black rounded-lg border border-outline-variant flex items-center justify-center">
-                    <span className="text-white text-xs font-mono font-bold">SOL</span>
-                  </div>
-                  <div>
-                    <div className="font-bold text-white tracking-tight">SOL</div>
-                    <div className="text-[11px] text-outline uppercase tracking-wider">Solana</div>
-                  </div>
+              {assets.length === 0 && !loading ? (
+                <div className="p-8 bg-surface-container-low border border-outline-variant rounded-xl text-center">
+                  <p className="text-xs text-outline font-mono uppercase">No assets found</p>
                 </div>
-                <div className="text-right">
-                  <div className="font-mono font-semibold text-white">0.000</div>
-                  <div className="text-[11px] text-outline font-mono">$0.00</div>
-                </div>
-              </div>
+              ) : (
+                assets.slice(0, 3).map((asset) => (
+                  <div key={asset.mint} className="flex items-center justify-between p-4 bg-surface-container-low border border-outline-variant rounded-xl hover:bg-surface-container transition-colors cursor-pointer" onClick={() => router.push('/assets')}>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-surface-container-highest rounded-lg border border-outline-variant flex items-center justify-center overflow-hidden">
+                        {asset.logoURI ? (
+                          <img src={asset.logoURI} alt={asset.symbol} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-on-surface text-xs font-mono font-bold">{asset.symbol.slice(0, 3)}</span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-bold text-on-surface tracking-tight">{asset.symbol}</div>
+                        <div className="text-[11px] text-outline uppercase tracking-wider truncate max-w-[100px]">{asset.name}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-mono font-semibold text-on-surface">
+                        {loading ? '...' : asset.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                      </div>
+                      <div className="text-[11px] text-outline font-mono">
+                        {loading ? '...' : asset.valueUsd.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+              {assets.length > 3 && (
+                <button 
+                  onClick={() => router.push('/assets')}
+                  className="w-full py-2 text-[10px] uppercase font-bold text-outline hover:text-primary transition-colors"
+                >
+                  + {assets.length - 3} More Assets
+                </button>
+              )}
+            </div>
+          </section>
+
+          {/* Recent Activity */}
+          <section className="space-y-6 mt-12 mb-12">
+            <div className="flex justify-between items-end border-b border-outline-variant pb-2">
+              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-outline">Recent Activity</h2>
+              <button 
+                onClick={() => router.push('/transactions')}
+                className="text-[10px] uppercase font-bold text-primary hover:underline"
+              >
+                View All
+              </button>
+            </div>
+            
+            <div className="bg-surface-container border border-outline-variant rounded-xl p-4 flex flex-col items-center justify-center py-12 text-center">
+              <span className="material-symbols-outlined text-3xl text-outline-variant mb-2">history</span>
+              <p className="text-xs text-outline font-mono">Check your full transaction history for details on previous swaps and transfers.</p>
             </div>
           </section>
         </>

@@ -1,6 +1,40 @@
 @import "tailwindcss";
 
-@theme {
+:root {
+  --color-background: #FDFDFD;
+  --color-surface: #F3F3F4;
+  --color-surface-dim: #EEEEF0;
+  --color-surface-bright: #FFFFFF;
+  --color-surface-container-lowest: #FFFFFF;
+  --color-surface-container-low: #F7F6F7;
+  --color-surface-container: #F0EFF0;
+  --color-surface-container-high: #E9E8E9;
+  --color-surface-container-highest: #E2E1E2;
+  
+  --color-primary: #006C49;
+  --color-primary-container: #10B981;
+  --color-on-primary: #FFFFFF;
+  --color-on-primary-container: #002113;
+  
+  --color-secondary: #4F4ED3;
+  --color-secondary-container: #E1E0FF;
+  --color-on-secondary: #FFFFFF;
+  --color-on-secondary-container: #07006C;
+  
+  --color-outline: #707973;
+  --color-outline-variant: #BFC9C2;
+  
+  --color-error: #BA1A1A;
+  --color-error-container: #FFDAD6;
+  --color-on-error: #FFFFFF;
+  --color-on-error-container: #410002;
+
+  --color-on-background: #1C1B1C;
+  --color-on-surface: #1C1B1C;
+  --color-on-surface-variant: #404943;
+}
+
+.dark {
   --color-background: #0A0A0B;
   --color-surface: #131314;
   --color-surface-dim: #131314;
@@ -32,6 +66,40 @@
   --color-on-background: #e5e2e3;
   --color-on-surface: #e5e2e3;
   --color-on-surface-variant: #bbcabf;
+}
+
+@theme {
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-surface-dim: var(--color-surface-dim);
+  --color-surface-bright: var(--color-surface-bright);
+  --color-surface-container-lowest: var(--color-surface-container-lowest);
+  --color-surface-container-low: var(--color-surface-container-low);
+  --color-surface-container: var(--color-surface-container);
+  --color-surface-container-high: var(--color-surface-container-high);
+  --color-surface-container-highest: var(--color-surface-container-highest);
+  
+  --color-primary: var(--color-primary);
+  --color-primary-container: var(--color-primary-container);
+  --color-on-primary: var(--color-on-primary);
+  --color-on-primary-container: var(--color-on-primary-container);
+  
+  --color-secondary: var(--color-secondary);
+  --color-secondary-container: var(--color-secondary-container);
+  --color-on-secondary: var(--color-on-secondary);
+  --color-on-secondary-container: var(--color-on-secondary-container);
+  
+  --color-outline: var(--color-outline);
+  --color-outline-variant: var(--color-outline-variant);
+  
+  --color-error: var(--color-error);
+  --color-error-container: var(--color-error-container);
+  --color-on-error: var(--color-on-error);
+  --color-on-error-container: var(--color-on-error-container);
+
+  --color-on-background: var(--color-on-background);
+  --color-on-surface: var(--color-on-surface);
+  --color-on-surface-variant: var(--color-on-surface-variant);
 
   --radius-DEFAULT: 0.75rem;
   --radius-lg: 0.75rem;

@@ -4,19 +4,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ClientWalletButton } from './ClientWalletButton';
 
+import { ThemeToggle } from './ThemeToggle';
+
 export function TopNavBar() {
   const pathname = usePathname();
 
   const getLinkClass = (path: string) => {
     const isActive = pathname === path;
     return isActive 
-      ? "font-semibold tracking-tight text-[#10B981] border-b-2 border-[#10B981] pb-1"
-      : "font-semibold tracking-tight text-gray-400 hover:text-white transition-colors pb-1";
+      ? "font-semibold tracking-tight text-primary border-b-2 border-primary pb-1"
+      : "font-semibold tracking-tight text-on-surface-variant hover:text-on-surface transition-colors pb-1";
   };
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-[#0A0A0B] border-b border-[#3C4A42]">
-      <div className="text-xl font-bold tracking-tighter text-[#10B981]">
+    <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-background border-b border-outline-variant">
+      <div className="text-xl font-bold tracking-tighter text-primary">
         <Link href="/">Gasit</Link>
       </div>
       <div className="hidden md:flex items-center space-x-8">
@@ -32,8 +34,12 @@ export function TopNavBar() {
         <Link href="/assets" className={getLinkClass("/assets")}>
           Assets
         </Link>
+        <Link href="/transactions" className={getLinkClass("/transactions")}>
+          History
+        </Link>
       </div>
       <div className="flex items-center gap-4">
+        <ThemeToggle />
         <ClientWalletButton />
       </div>
     </nav>
