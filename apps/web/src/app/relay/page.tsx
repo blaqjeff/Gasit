@@ -16,6 +16,19 @@ export default function RelayTransferPage() {
   const [asset, setAsset] = useState<string>('SOL');
   const [amount, setAmount] = useState<string>('');
   const [isTransferring, setIsTransferring] = useState(false);
+  const [dynamicFee, setDynamicFee] = useState<number | null>(null);
+  const [feeSol, setFeeSol] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Fetch dynamic fee for transfer
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/relay/fee?type=transfer`)
+      .then(res => res.json())
+      .then(data => {
+        setDynamicFee(data.feeNaira);
+        setFeeSol(data.feeSol);
+      })
+      .catch(err => console.error("Failed to fetch transfer fee", err));
+  }, []);
 
   const executeTransfer = async () => {
     if (!publicKey || !signTransaction) return;
@@ -131,9 +144,23 @@ export default function RelayTransferPage() {
               </div>
             </div>
 
-            <div className="flex justify-between items-center mb-6 px-2">
-              <span className="text-outline font-semibold text-sm">Gasit Automation Fee</span>
-              <span className="font-mono text-primary font-bold">₦ 100.00</span>
+            <div className="space-y-2 mb-6 p-4 bg-surface rounded border border-outline-variant">
+              <div className="flex justify-between text-xs font-mono">
+                <span className="text-outline uppercase tracking-wider">Solana Network Fee</span>
+                <span className="text-on-surface font-bold">
+                  {feeSol !== null ? `${feeSol.toFixed(6)} SOL` : "..."}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs font-mono">
+                <span className="text-outline uppercase tracking-wider">Gasit Sponsorship</span>
+                <span className="text-primary font-bold">100% COVERED</span>
+              </div>
+              <div className="flex justify-between text-xs font-mono border-t border-outline-variant pt-2 mt-2">
+                <span className="text-outline uppercase tracking-wider">Gasit Automation Fee</span>
+                <span className="text-primary font-bold">
+                  {dynamicFee !== null ? `₦ ${dynamicFee.toFixed(2)}` : "Calculating..."}
+                </span>
+              </div>
             </div>
 
             <button 

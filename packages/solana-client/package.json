@@ -5,7 +5,8 @@
   "main": "index.ts",
   "dependencies": {
     "@solana/web3.js": "latest",
-    "@solana/spl-token": "latest"
+    "@solana/spl-token": "latest",
+    "bs58": "^6.0.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
