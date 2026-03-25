@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { TopNavBar } from "@/components/TopNavBar";
 import { getJupiterQuote, getJupiterSwapTx, QuoteResponse, SOL_MINT, USDC_MINT } from "@/lib/jupiter";
+import TransactionResult, { TransactionResultType } from "@/components/TransactionResult";
 
 // Debounce helper
 function useDebounce<T>(value: T, delay: number): T {
@@ -36,6 +37,7 @@ export default function SwapPage() {
   const [slippageBps, setSlippageBps] = useState(50);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [customSlippage, setCustomSlippage] = useState<string>('');
+  const [txResult, setTxResult] = useState<{ type: TransactionResultType; txId?: string; message?: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -115,11 +117,10 @@ export default function SwapPage() {
         throw new Error(data.error || 'Backend Swap Relay Failed');
       }
 
-      alert(`✅ Swap executed gaslessly!\nSignature: ${data.txId}\n\nYour Dashboard Naira balance has been deducted!`);
-      router.push('/dashboard');
+      setTxResult({ type: 'success', txId: data.txId });
     } catch (err: any) {
       console.error(err);
-      alert('Error during gasless swap: ' + err.message);
+      setTxResult({ type: 'error', message: err.message });
     } finally {
       setIsSwapping(false);
     }
@@ -295,6 +296,16 @@ export default function SwapPage() {
           </button>
         </div>
       </div>
+
+      {txResult && (
+        <TransactionResult
+          type={txResult.type}
+          kind="swap"
+          txId={txResult.txId}
+          message={txResult.message}
+          onClose={() => setTxResult(null)}
+        />
+      )}
     </main>
   );
 }

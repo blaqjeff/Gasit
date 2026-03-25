@@ -23,6 +23,7 @@ import {
   TokenInvalidAccountOwnerError 
 } from "@solana/spl-token";
 import { fetchRelayerPubKey } from "@/lib/api-client";
+import TransactionResult, { TransactionResultType } from "@/components/TransactionResult";
 
 interface TokenAsset {
   symbol: string;
@@ -46,6 +47,7 @@ export default function RelayTransferPage() {
   const [relayerPubKey, setRelayerPubKey] = useState<string | null>(null);
   const [tokens, setTokens] = useState<TokenAsset[]>([]);
   const [loadingTokens, setLoadingTokens] = useState(false);
+  const [txResult, setTxResult] = useState<{ type: TransactionResultType; txId?: string; message?: string } | null>(null);
 
   // Initialize
   useEffect(() => {
@@ -211,12 +213,11 @@ export default function RelayTransferPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Server rejected transfer relay');
 
-      alert(`✅ Transfer executed gaslessly!\n\nCheck signature: ${data.txId}`);
-      router.push('/dashboard');
+      setTxResult({ type: 'success', txId: data.txId });
 
     } catch (err: any) {
       console.error(err);
-      alert('Error during gasless transfer: ' + err.message);
+      setTxResult({ type: 'error', message: err.message });
     } finally {
       setIsTransferring(false);
     }
@@ -355,6 +356,16 @@ export default function RelayTransferPage() {
           </div>
         </div>
       </div>
+
+      {txResult && (
+        <TransactionResult
+          type={txResult.type}
+          kind="transfer"
+          txId={txResult.txId}
+          message={txResult.message}
+          onClose={() => setTxResult(null)}
+        />
+      )}
     </main>
   );
 }
