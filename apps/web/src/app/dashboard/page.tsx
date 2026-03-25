@@ -21,11 +21,17 @@ export default function DashboardPage() {
         try {
           // Fetch Naira Balance
           const data = await fetchUserBalance(publicKey.toString());
-          setUserData(data);
+          // Only update if we actually got a result or a 404 (null)
+          // If the network call itself fails, we keep the old data to avoid flickering to 0
+          if (data !== undefined) {
+             setUserData(data);
+          }
 
           // Fetch All Assets (SOL + SPL)
           const assetData = await fetchUserAssets(publicKey.toString());
-          setAssets(assetData);
+          if (assetData !== undefined) {
+             setAssets(assetData);
+          }
         } catch (error) {
           console.error("Dashboard refresh error:", error);
         } finally {
@@ -58,7 +64,7 @@ export default function DashboardPage() {
               <span className="text-on-primary-container text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] mb-2 opacity-80">Gasit Balance</span>
               <div className="flex items-baseline gap-2 overflow-hidden">
                 <h1 className="text-on-primary-container text-3xl md:text-5xl font-extrabold tracking-tighter font-mono leading-none truncate">
-                  ₦{loading ? '...' : nairaBalance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                  {loading && !userData ? '...' : `₦${nairaBalance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`}
                 </h1>
               </div>
               <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">

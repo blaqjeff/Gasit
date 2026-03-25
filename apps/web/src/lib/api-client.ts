@@ -48,14 +48,15 @@ export const verifyPaystackPayment = async (reference: string): Promise<{ messag
     return data;
 };
 
-export const fetchUserBalance = async (walletAddress: string): Promise<UserDTO | null> => {
+export const fetchUserBalance = async (walletAddress: string): Promise<UserDTO | null | undefined> => {
     try {
         const res = await fetch(`${API_BASE_URL}/users/${walletAddress}`);
-        if (!res.ok) return null;
+        if (res.status === 404) return null;
+        if (!res.ok) return undefined; // Server error, keep old data
         return res.json();
     } catch (error) {
         console.error('Error fetching user balance:', error);
-        return null;
+        return undefined; // Network error, keep old data
     }
 };
 
@@ -77,6 +78,12 @@ export const executeRelay = async (walletAddress: string, transactionBase64: str
     } catch (error: any) {
         return { success: false, error: error.message };
     }
+};
+
+export const fetchRelayerPubKey = async (): Promise<string> => {
+    const res = await fetch(`${API_BASE_URL}/relay/pubkey`);
+    const data = await res.json();
+    return data.publicKey;
 };
 
 export const fetchUserDeposits = async (walletAddress: string): Promise<DepositDTO[]> => {
@@ -101,7 +108,7 @@ export const fetchUserTransactions = async (walletAddress: string): Promise<Tran
     }
 };
 
-export const fetchUserAssets = async (walletAddress: string): Promise<AssetDTO[]> => {
+export const fetchUserAssets = async (walletAddress: string): Promise<AssetDTO[] | undefined> => {
     try {
         const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com');
         const pubkey = new PublicKey(walletAddress);
@@ -170,41 +177,50 @@ export const fetchUserAssets = async (walletAddress: string): Promise<AssetDTO[]
 
         // 3. Fetch Metadata and Prices for all found mints
         if (assets.length > 0) {
-            const mints = assets.map(a => a.mint).join(',');
+            // EXTREMELY IMPORTANT: Limit to top assets to avoid huge URL strings and timeouts
+            // Also filter for common mainnet mints or allow a bit more for devnet if needed
+            const maxAssets = assets.slice(0, 15); 
+            const mints = maxAssets.map(a => a.mint).join(',');
             
-            // Parallel fetch metadata and prices
-            const [metaRes, priceRes] = await Promise.all([
-                fetch(`/api/jupiter/tokens?mints=${mints}`),
-                fetch(`/api/jupiter/price?ids=${mints}`)
-            ]);
+            try {
+                // Parallel fetch metadata and prices with absolute URLs to avoid relative path issues in SSR/dev
+                const [metaRes, priceRes] = await Promise.all([
+                    fetch(`/api/jupiter/tokens?mints=${mints}`),
+                    fetch(`/api/jupiter/price?ids=${mints}`)
+                ]);
 
-            const [metaData, priceData] = await Promise.all([
-                metaRes.ok ? metaRes.json() : null,
-                priceRes.ok ? priceRes.json() : null
-            ]);
+                if (metaRes.ok || priceRes.ok) {
+                    const [metaData, priceData] = await Promise.all([
+                        metaRes.ok ? metaRes.json() : null,
+                        priceRes.ok ? priceRes.json() : null
+                    ]);
 
-            // Map results back to assets
-            assets.forEach(asset => {
-                if (metaData) {
-                    const meta = metaData.find((m: any) => m.address === asset.mint);
-                    if (meta) {
-                        asset.symbol = meta.symbol;
-                        asset.name = meta.name;
-                        asset.logoURI = meta.logoURI;
-                    }
+                    // Map results back to assets
+                    assets.forEach(asset => {
+                        if (metaData && Array.isArray(metaData)) {
+                            const meta = metaData.find((m: any) => m.address === asset.mint);
+                            if (meta) {
+                                asset.symbol = meta.symbol;
+                                asset.name = meta.name;
+                                asset.logoURI = meta.logoURI;
+                            }
+                        }
+                        if (priceData?.data?.[asset.mint]) {
+                            asset.priceUsd = parseFloat(priceData.data[asset.mint].price);
+                            asset.valueUsd = asset.balance * asset.priceUsd;
+                        }
+                    });
                 }
-                if (priceData?.data?.[asset.mint]) {
-                    asset.priceUsd = parseFloat(priceData.data[asset.mint].price);
-                    asset.valueUsd = asset.balance * asset.priceUsd;
-                }
-            });
+            } catch (e) {
+                console.warn('Metadata/Price fetch failed (skipping polish):', e);
+            }
         }
 
         // Sort by value descending
         return assets.sort((a, b) => b.valueUsd - a.valueUsd);
 
     } catch (error) {
-        console.error('Error fetching assets:', error);
-        return [];
+        console.error('Error fetching user assets:', error);
+        return undefined; // Keep old list on failure
     }
 };

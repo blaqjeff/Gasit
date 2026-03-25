@@ -39,7 +39,8 @@ export default function DepositPage() {
     publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
     metadata: {
       custom_fields: [],
-      walletAddress: publicKey?.toString() || ""
+      walletAddress: publicKey?.toString() || "",
+      origin: "web_deposit"
     },
     channels: paymentMethod ? [paymentMethod] : undefined,
   };
