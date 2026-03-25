@@ -27,7 +27,9 @@ export default function AssetsPage() {
       setLoading(true);
       try {
         const data = await fetchUserAssets(publicKey.toString());
-        setAssets(data);
+        if (data !== undefined) {
+          setAssets(data);
+        }
       } catch (err) {
         console.error("Error fetching portfolio data", err);
       } finally {
