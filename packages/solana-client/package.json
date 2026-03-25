@@ -2,13 +2,17 @@
   "name": "solana-client",
   "version": "1.0.0",
   "private": true,
-  "main": "index.ts",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
   "dependencies": {
     "@solana/web3.js": "latest",
     "@solana/spl-token": "latest",
     "bs58": "^6.0.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "typescript": "^5.0.0"
   }
 }
