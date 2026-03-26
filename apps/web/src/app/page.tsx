@@ -1,11 +1,14 @@
 import { ClientWalletButton } from '../components/ClientWalletButton';
+import { NotBackedPill } from '../components/NotBackedPill';
 
 export default function LandingPage() {
   return (
     <main className="pt-16 pb-32">
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-6 pt-20 pb-32">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <section className="max-w-7xl mx-auto px-6 pt-12 pb-32 flex flex-col items-center">
+        <NotBackedPill />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center w-full mt-12">
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-outline-variant bg-surface-container-low">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>

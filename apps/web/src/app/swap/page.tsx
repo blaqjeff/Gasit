@@ -4,6 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
+import { VersionedTransaction } from "@solana/web3.js";
 import { TopNavBar } from "@/components/TopNavBar";
 import { getJupiterQuote, getJupiterSwapTx, QuoteResponse, SOL_MINT, USDC_MINT } from "@/lib/jupiter";
 import TransactionResult, { TransactionResultType } from "@/components/TransactionResult";
@@ -31,7 +32,10 @@ export default function SwapPage() {
   const [isQuoting, setIsQuoting] = useState(false);
   const [isSwapping, setIsSwapping] = useState(false);
   const [dynamicFee, setDynamicFee] = useState<number | null>(null);
+  const [gasFeeNaira, setGasFeeNaira] = useState<number | null>(null);
+  const [rentFeeNaira, setRentFeeNaira] = useState<number | null>(null);
   const [feeSol, setFeeSol] = useState<number | null>(null);
+  const [rentFeeSol, setRentFeeSol] = useState<number>(0);
   
   // Slippage settings
   const [slippageBps, setSlippageBps] = useState(50);
@@ -50,6 +54,12 @@ export default function SwapPage() {
 
     const fetchQuote = async () => {
       setIsQuoting(true);
+      // Clear previous fees to prevent flashing
+      setDynamicFee(null);
+      setFeeSol(null);
+      setGasFeeNaira(null);
+      setRentFeeNaira(null);
+      setRentFeeSol(0);
       // Determine decimals: assume 6 for USDC, 9 for SOL
       const decimals = inputMint === USDC_MINT ? 1e6 : 1e9;
       const amountAsInt = Math.floor(parseFloat(debouncedInput) * decimals);
@@ -59,17 +69,29 @@ export default function SwapPage() {
       if (active) {
         setQuote(q);
         setIsQuoting(false);
-        if (q) {
-           // Fetch gas fee only after successful quote interpolation 
-           fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/relay/fee?type=swap`)
-             .then(res => res.json())
-             .then(data => { 
-                if (active) {
-                    setDynamicFee(data.feeNaira);
-                    setFeeSol(data.feeSol);
-                } 
-             })
-             .catch(err => console.error("Failed to fetch dynamic swap fee", err));
+        if (q && publicKey) {
+           // Fetch accurate gas fee by previewing the swap transaction
+           try {
+             const swapTx = await getJupiterSwapTx(q, publicKey.toString());
+             if (swapTx && active) {
+               const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/relay/preview`, {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({ transactionBase64: swapTx })
+               });
+               if (res.ok && active) {
+                 const data = await res.json();
+                 setDynamicFee(data.feeNaira);
+                 setGasFeeNaira(data.gasFeeNaira);
+                 setRentFeeNaira(data.rentFeeNaira);
+                 setFeeSol(data.feeSol);
+                 setRentFeeSol(data.rentFeeSol || 0);
+               }
+             }
+           } catch (err) {
+             console.error("Failed to fetch accurate preview fee", err);
+             // Fallback to legacy fee estimation
+           }
         } else {
            setDynamicFee(null);
            setFeeSol(null);
@@ -100,13 +122,16 @@ export default function SwapPage() {
       const swapTransactionBuf = await getJupiterSwapTx(quote, publicKey.toString());
       if (!swapTransactionBuf) throw new Error("Failed to fetch swap transaction from Jupiter.");
 
-      // For gasless logic, the backend usually constructs this and signs as fee payer.
-      // We will send this base64 string to our API to trigger the Naira deduction and processing.
+      // 2. User signs the transaction
+      const transaction = VersionedTransaction.deserialize(Buffer.from(swapTransactionBuf, 'base64'));
+      const signedTransaction = await signTransaction(transaction);
+      const base64Tx = Buffer.from(signedTransaction.serialize()).toString('base64');
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/relay/swap`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          transactionBase64: swapTransactionBuf,
+          transactionBase64: base64Tx,
           userWallet: publicKey.toString()
         })
       });
@@ -192,15 +217,6 @@ export default function SwapPage() {
             </div>
           )}
 
-          <div className="mb-6 px-2">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-outline font-semibold text-sm">Gasit Automation Fee</span>
-              <span className="font-mono text-primary font-bold">
-                {dynamicFee !== null ? `₦ ${dynamicFee.toFixed(2)}` : "Calculating..."}
-              </span>
-            </div>
-          </div>
-
           <div className="relative flex flex-col gap-2">
             <div className="mb-2">
               <div className="flex justify-between items-center mb-2">
@@ -263,10 +279,24 @@ export default function SwapPage() {
           <div className="space-y-2 mb-6 p-4 bg-surface rounded border border-outline-variant">
              <div className="flex justify-between text-xs font-mono">
                <span className="text-outline uppercase tracking-wider">Solana Network Fee</span>
-               <span className="text-on-surface font-bold">
-                  {feeSol !== null ? `${feeSol.toFixed(6)} SOL` : "..."}
+               <span className="text-on-surface font-bold line-through opacity-70">
+                  {!inputAmount ? "0.00 SOL" : (feeSol !== null && feeSol > 0 ? `${feeSol.toFixed(7)} SOL` : "Calculating...")}
                </span>
              </div>
+             {rentFeeSol > 0 && (
+               <div className="flex justify-between text-xs font-mono border-b border-outline-variant/30 pb-2 mb-2">
+                 <div className="flex items-center gap-1">
+                   <span className="text-outline uppercase">Account Activation</span>
+                   <span className="material-symbols-outlined text-[12px] text-outline/50">info</span>
+                 </div>
+                 <div className="text-right">
+                   <span className="text-on-surface font-bold">
+                      {`~${rentFeeSol.toFixed(4)} SOL`}
+                   </span>
+                   <div className="text-[9px] text-on-surface-variant font-medium uppercase">Paid by Relayer</div>
+                 </div>
+               </div>
+             )}
              <div className="flex justify-between text-xs font-mono">
                <span className="text-outline">Gasit Sponsorship</span>
                <span className="text-primary font-bold">100% COVERED</span>
@@ -275,11 +305,19 @@ export default function SwapPage() {
                 <span className="text-outline">Slippage Tolerance</span>
                 <span className="text-on-surface">{(slippageBps / 100).toFixed(1)}%</span>
               </div>
-              <div className="flex justify-between text-xs font-mono border-t border-outline-variant pt-2 mt-2">
-                <span className="text-outline">Gasit Automation Fee</span>
-                <span className="text-primary font-bold">
-                   {dynamicFee !== null ? `₦ ${dynamicFee.toFixed(2)}` : "Calculating..."}
-                </span>
+              <div className="flex justify-between items-top text-xs font-mono border-t border-outline-variant pt-2 mt-2">
+                <span className="text-outline uppercase tracking-widest mt-1">Service Fee</span>
+                <div className="text-right">
+                  <span className="text-primary font-extrabold text-sm">
+                     {!inputAmount ? "₦0.00" : (dynamicFee !== null ? `₦${dynamicFee.toLocaleString()}` : "Calculating...")}
+                  </span>
+                  {dynamicFee !== null && gasFeeNaira !== null && (
+                    <div className="text-[10px] text-on-surface-variant font-medium mt-1 lowercase">
+                      {`₦${gasFeeNaira.toLocaleString()} gas${rentFeeNaira && rentFeeNaira > 0 ? ` + ₦${rentFeeNaira.toLocaleString()} activation` : ''}`}
+                    </div>
+                  )}
+                  <p className="text-[9px] text-on-surface-variant font-medium mt-1 uppercase">Deducted from Dashboard Balance</p>
+                </div>
               </div>
            </div>
 

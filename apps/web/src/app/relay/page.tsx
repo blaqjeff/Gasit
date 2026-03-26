@@ -11,7 +11,8 @@ import {
   SystemProgram, 
   TransactionInstruction, // Added
   TransactionMessage, 
-  VersionedTransaction 
+  VersionedTransaction,
+  ComputeBudgetProgram
 } from "@solana/web3.js";
 import { 
   TOKEN_PROGRAM_ID, 
@@ -24,6 +25,16 @@ import {
 } from "@solana/spl-token";
 import { fetchRelayerPubKey } from "@/lib/api-client";
 import TransactionResult, { TransactionResultType } from "@/components/TransactionResult";
+
+// Debounce helper
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debounced;
+}
 
 interface TokenAsset {
   symbol: string;
@@ -43,23 +54,20 @@ export default function RelayTransferPage() {
   const [amount, setAmount] = useState<string>('');
   const [isTransferring, setIsTransferring] = useState(false);
   const [dynamicFee, setDynamicFee] = useState<number | null>(null);
+  const [gasFeeNaira, setGasFeeNaira] = useState<number | null>(null);
+  const [rentFeeNaira, setRentFeeNaira] = useState<number | null>(null);
   const [feeSol, setFeeSol] = useState<number | null>(null);
+  const [rentFeeSol, setRentFeeSol] = useState<number>(0);
   const [relayerPubKey, setRelayerPubKey] = useState<string | null>(null);
   const [tokens, setTokens] = useState<TokenAsset[]>([]);
   const [loadingTokens, setLoadingTokens] = useState(false);
   const [txResult, setTxResult] = useState<{ type: TransactionResultType; txId?: string; message?: string } | null>(null);
+  
+  const debouncedDestination = useDebounce(destination, 600);
+  const debouncedAmount = useDebounce(amount, 600);
 
   // Initialize
   useEffect(() => {
-    // 1. Fetch dynamic fee
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/relay/fee?type=transfer`)
-      .then(res => res.json())
-      .then(data => {
-        setDynamicFee(data.feeNaira);
-        setFeeSol(data.feeSol);
-      })
-      .catch(err => console.error("Failed to fetch transfer fee", err));
-
     // 2. Fetch Relayer Pubkey
     fetchRelayerPubKey()
       .then(setRelayerPubKey)
@@ -74,6 +82,89 @@ export default function RelayTransferPage() {
       setTokens([]);
     }
   }, [publicKey]);
+
+  // Accurate Fee Preview Logic
+  useEffect(() => {
+    if (!publicKey || !debouncedDestination || !debouncedAmount || isTransferring) return;
+
+    async function getAccuratePreview() {
+      if (!publicKey || !relayerPubKey) return;
+
+      // Clear previous fees to prevent flashing
+      setFeeSol(null);
+      setDynamicFee(null);
+      setGasFeeNaira(null);
+      setRentFeeNaira(null);
+      setRentFeeSol(0);
+
+      try {
+        const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com');
+        const destPubkey = new PublicKey(debouncedDestination);
+        const relayerPubkeyObj = new PublicKey(relayerPubKey);
+        const selectedAsset = tokens.find(t => t.mint === selectedMint);
+        if (!selectedAsset && selectedMint !== 'SOL') return;
+        
+        const instructions: TransactionInstruction[] = [];
+
+        // Add Priority Fee
+        const recentFees = await connection.getRecentPrioritizationFees();
+        const medianPriorityFee = recentFees.length > 0 ? 
+            recentFees.sort((a, b) => (a.prioritizationFee as number) - (b.prioritizationFee as number))[Math.floor(recentFees.length / 2)].prioritizationFee : 1000;
+        
+        instructions.push(ComputeBudgetProgram.setComputeUnitLimit({ units: 200000 }));
+        instructions.push(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: Math.max(medianPriorityFee, 5000) }));
+
+        if (selectedMint === 'SOL') {
+          instructions.push(SystemProgram.transfer({
+            fromPubkey: publicKey,
+            toPubkey: destPubkey,
+            lamports: Math.floor(parseFloat(debouncedAmount) * 1e9)
+          }));
+        } else if (selectedAsset) {
+          const mintPubkey = new PublicKey(selectedAsset.mint);
+          const fromAta = await getAssociatedTokenAddress(mintPubkey, publicKey);
+          const toAta = await getAssociatedTokenAddress(mintPubkey, destPubkey);
+          
+          try { await getAccount(connection, toAta); } catch (e) {
+            instructions.push(createAssociatedTokenAccountInstruction(relayerPubkeyObj, toAta, destPubkey, mintPubkey));
+          }
+          const rawAmount = BigInt(Math.floor(parseFloat(debouncedAmount) * Math.pow(10, selectedAsset.decimals)));
+          instructions.push(createTransferCheckedInstruction(fromAta, mintPubkey, toAta, publicKey, rawAmount, selectedAsset.decimals));
+        }
+
+        const { blockhash } = await connection.getLatestBlockhash('finalized');
+        const messageV0 = new TransactionMessage({
+          payerKey: relayerPubkeyObj,
+          recentBlockhash: blockhash,
+          instructions: instructions
+        }).compileToV0Message();
+        
+        const tx = new VersionedTransaction(messageV0);
+        const base64 = Buffer.from(tx.serialize()).toString('base64');
+
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/relay/preview`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transactionBase64: base64 })
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setDynamicFee(data.feeNaira);
+          setGasFeeNaira(data.gasFeeNaira);
+          setRentFeeNaira(data.rentFeeNaira);
+          setFeeSol(data.feeSol);
+          setRentFeeSol(data.rentFeeSol || 0);
+        }
+      } catch (e) {
+        // Silently fail on preview errors to avoid flickering
+      }
+    }
+
+    if (relayerPubKey && tokens.length > 0) {
+      getAccuratePreview();
+    }
+  }, [debouncedDestination, debouncedAmount, selectedMint, relayerPubKey]);
 
   const fetchWalletAssets = async () => {
     if (!publicKey) return;
@@ -140,6 +231,14 @@ export default function RelayTransferPage() {
       
       const instructions: TransactionInstruction[] = [];
 
+      // Add Priority Fee
+      const recentFees = await connection.getRecentPrioritizationFees();
+      const medianPriorityFee = recentFees.length > 0 ? 
+          recentFees.sort((a, b) => (a.prioritizationFee as number) - (b.prioritizationFee as number))[Math.floor(recentFees.length / 2)].prioritizationFee : 1000;
+      
+      instructions.push(ComputeBudgetProgram.setComputeUnitLimit({ units: 200000 }));
+      instructions.push(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: Math.max(medianPriorityFee, 5000) }));
+
       if (selectedAsset.mint === 'SOL') {
         const lamports = Math.floor(parseFloat(amount) * 1e9);
         instructions.push(SystemProgram.transfer({
@@ -185,7 +284,7 @@ export default function RelayTransferPage() {
       }
 
       // Fetch blockhash
-      const { blockhash } = await connection.getLatestBlockhash('confirmed');
+      const { blockhash } = await connection.getLatestBlockhash('finalized');
 
       // Compile message with RELAYER as the payer
       const messageV0 = new TransactionMessage({
@@ -305,22 +404,50 @@ export default function RelayTransferPage() {
                 <div className="flex justify-between items-center text-xs font-mono">
                   <span className="text-outline uppercase tracking-widest">Network Fee Cost</span>
                   <div className="text-right">
-                    <div className="text-on-surface font-bold line-through opacity-50">
-                      {feeSol !== null ? `~${feeSol.toFixed(7)} SOL` : "..."}
+                    <div className="text-on-surface font-bold line-through opacity-70">
+                      {!amount || !destination ? "0.00 SOL" : (feeSol !== null && feeSol > 0 ? `~${feeSol.toFixed(7)} SOL` : "Calculating...")}
                     </div>
                     <div className="text-primary font-bold text-[10px] uppercase">Gasless Sponsored</div>
                   </div>
                 </div>
                 
+                {rentFeeSol > 0 && (
+                  <>
+                    <div className="flex justify-between items-center text-xs font-mono">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-outline uppercase tracking-widest">Account Activation</span>
+                        <div className="group relative">
+                          <span className="material-symbols-outlined text-[14px] text-outline/50 cursor-help">info</span>
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-surface-container text-[10px] text-on-surface rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-outline-variant">
+                            One-time SOL rent required by Solana to open this token account for the recipient.
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-on-surface font-bold">
+                          {`~${rentFeeSol.toFixed(4)} SOL`}
+                        </div>
+                        <div className="text-[9px] text-on-surface-variant font-medium uppercase">Paid by Relayer</div>
+                      </div>
+                    </div>
+                    <div className="h-px bg-outline-variant/30" />
+                  </>
+                )}
+                
                 <div className="h-px bg-outline-variant/30" />
 
-                <div className="flex justify-between items-center text-xs font-mono">
-                  <span className="text-outline uppercase tracking-widest">Automated Relayer Fee</span>
+                <div className="flex justify-between items-top text-xs font-mono">
+                  <span className="text-outline uppercase tracking-widest mt-1">Service Fee</span>
                   <div className="text-right">
                     <span className="text-primary font-extrabold text-sm">
-                      {dynamicFee !== null ? `₦${dynamicFee.toLocaleString()}` : "Calculating..."}
+                       {!amount || !destination ? "₦0.00" : (dynamicFee !== null ? `₦${dynamicFee.toLocaleString()}` : "Calculating...")}
                     </span>
-                    <p className="text-[9px] text-outline-variant mt-1 uppercase">Deducted from Dashboard Balance</p>
+                    {dynamicFee !== null && gasFeeNaira !== null && (
+                      <div className="text-[10px] text-on-surface-variant font-medium mt-1 lowercase">
+                        {`₦${gasFeeNaira.toLocaleString()} gas${rentFeeNaira && rentFeeNaira > 0 ? ` + ₦${rentFeeNaira.toLocaleString()} activation` : ''}`}
+                      </div>
+                    )}
+                    <p className="text-[9px] text-on-surface-variant font-medium mt-1 uppercase">Deducted from Dashboard Balance</p>
                   </div>
                 </div>
               </div>
@@ -340,7 +467,7 @@ export default function RelayTransferPage() {
                     <span className="material-symbols-outlined">send</span>
                   )}
                   <span>
-                    {!connected ? "Connect Wallet to Dispatch" : isTransferring ? "Broadcasting..." : "Initiate Gasless Transfer"}
+                    {!connected ? "Connect Wallet to Send" : isTransferring ? "Broadcasting..." : "Send Gaslessly"}
                   </span>
                 </div>
                 {/* Button Glow Effect */}
@@ -349,7 +476,7 @@ export default function RelayTransferPage() {
               
               {!connected && (
                 <p className="text-center text-[10px] font-mono text-error uppercase tracking-widest">
-                  Wallet connection required to access relayer
+                  Connect your wallet to send assets
                 </p>
               )}
             </form>

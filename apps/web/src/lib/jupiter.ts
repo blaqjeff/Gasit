@@ -54,7 +54,7 @@ export async function getJupiterSwapTx(
         quoteResponse,
         userPublicKey: userWalletPubkey,
         wrapAndUnwrapSol: true,
-        // computeUnitPriceMicroLamports: "auto" // Auto priority fees
+        computeUnitPriceMicroLamports: "auto" // Auto priority fees
       }),
     });
     

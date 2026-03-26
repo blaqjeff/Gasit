@@ -61,6 +61,7 @@ export default function DashboardPage() {
           <section className="mb-8">
             <div className="bg-primary-container p-8 rounded-xl border border-primary flex flex-col items-start relative overflow-hidden shadow-lg">
               <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBqMFWSIyZo1KO7nQIsT8vgyX32LFNnEXI6LeHX0f_4EO21kLGTO8ongeqLeTF-nUV0PpDdbNk3R4st0DqIGg4U9lgEtY44i3DrF2MB98_yaHmi11sn18pvkHdELXu-X1nf6DNQwV0Z7wt1_0osS_9c8ir2J3TIJ48LZjJOSp7XIQxzRVsa4yLM_RUp2kZvIIcoijrcHW8A6fH-a14uSCtKJpph1kdYsdEd0VR9a49dpLrADJX7u-553iWQd8j8dC1hP5cu7eQplPI')" }}></div>
+              <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBqMFWSIyZo1KO7nQIsT8vgyX32LFNnEXI6LeHX0f_4EO21kLGTO8ongeqLeTF-nUV0PpDdbNk3R4st0DqIGg4U9lgEtY44i3DrF2MB98_yaHmi11sn18pvkHdELXu-X1nf6DNQwV0Z7wt1_0osS_9c8ir2J3TIJ48LZjJOSp7XIQxzRVsa4yLM_RUp2kZvIIcoijrcHW8A6fH-a14uSCnKJpph1kdYsdEd0VR9a49dpLrADJX7u-553iWQd8j8dC1hP5cu7eQplPI')" }}></div>
               <span className="text-on-primary-container text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] mb-2 opacity-80">Gasit Balance</span>
               <div className="flex items-baseline gap-2 overflow-hidden">
                 <h1 className="text-on-primary-container text-3xl md:text-5xl font-extrabold tracking-tighter font-mono leading-none truncate">
@@ -71,7 +72,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 text-on-primary-container text-xs md:text-sm opacity-90">
                   <span className="material-symbols-outlined text-sm">bolt</span>
                   <span className="font-medium">
-                    {nairaBalance > 0 ? 'Ready for next transactions' : 'Fund your wallet to relay transactions'}
+                    {nairaBalance > 0 ? 'Ready for next transactions' : 'Fund your wallet to send gaslessly'}
                   </span>
                 </div>
                 <button 
@@ -172,7 +173,7 @@ export default function DashboardPage() {
          <div className="flex flex-col items-center justify-center py-32 text-center space-y-4">
            <span className="material-symbols-outlined text-4xl text-outline-variant mb-4">account_balance_wallet</span>
            <h2 className="text-2xl font-bold text-on-surface">Connect your wallet</h2>
-           <p className="text-on-surface-variant max-w-sm">Please connect your Solana wallet to access your Gasit dashboard and fund your relayer balance.</p>
+           <p className="text-on-surface-variant max-w-sm">Please connect your Solana wallet to access your Gasit dashboard and fund your account.</p>
          </div>
       )}
       

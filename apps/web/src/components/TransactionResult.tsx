@@ -45,7 +45,7 @@ export default function TransactionResult({ type, kind, txId, message, onClose }
           {/* Heading */}
           <h2 className="text-2xl font-bold tracking-tight mb-2 text-on-surface">
             {isSuccess
-              ? `${kindLabel} Relayed Successfully!`
+              ? (kind === 'transfer' ? 'Sent Successfully!' : 'Swap Successful!')
               : `${kindLabel} Failed`}
           </h2>
 
@@ -71,7 +71,7 @@ export default function TransactionResult({ type, kind, txId, message, onClose }
                 rel="noopener noreferrer"
                 className="w-full py-4 bg-surface-container-highest border border-outline-variant text-on-surface font-semibold tracking-tight rounded-lg hover:bg-surface-container-high transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
               >
-                <span className="text-sm">View on Solscan</span>
+                <span className="text-sm">View on Explorer</span>
                 <span
                   className="material-symbols-outlined group-hover:translate-x-0.5 transition-transform"
                   style={{ fontSize: 16 }}
