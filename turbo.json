@@ -1,5 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "JUPITER_API_KEY",
+    "NEXT_PUBLIC_API_URL",
+    "NEXT_PUBLIC_SOLANA_RPC_URL",
+    "NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

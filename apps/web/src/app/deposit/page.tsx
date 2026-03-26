@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/navigation";
 import { TopNavBar } from "@/components/TopNavBar";
-import { usePaystackPayment } from "react-paystack";
-import { verifyPaystackPayment, fetchUserDeposits, DepositDTO } from "@/lib/api-client";
-import { useEffect } from "react";
+import { fetchUserDeposits, DepositDTO } from "@/lib/api-client";
+
+const DepositButton = dynamic(() => import("./DepositButton"), { ssr: false });
 
 export default function DepositPage() {
   const { connected, publicKey } = useWallet();
@@ -31,59 +32,8 @@ export default function DepositPage() {
     loadHistory();
   }, [publicKey]);
 
-  // Initialize Paystack Config
-  const config = {
-    reference: (new Date()).getTime().toString(),
-    email: "user@gasit.com", // Since Gasit doesn't enforce email logins, we use a placeholder or ask the user. We'll use a placeholder.
-    amount: (parseFloat(amount) || 0) * 100, // Paystack expects lowest denomination (Kobo)
-    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-    metadata: {
-      custom_fields: [],
-      walletAddress: publicKey?.toString() || "",
-      origin: "web_deposit"
-    },
-    channels: paymentMethod ? [paymentMethod] : undefined,
-  };
-
-  const initializePayment = usePaystackPayment(config);
-
-  const handleDeposit = () => {
-    if (!connected || !publicKey) {
-      alert("Please connect your wallet first.");
-      return;
-    }
-    
-    if (!paymentMethod) {
-      alert("Please select a payment method.");
-      return;
-    }
-
-    if (!amount || parseFloat(amount) < 100) {
-      alert("Please enter a valid amount (minimum ₦100).");
-      return;
-    }
-
-    // Since Paystack hook requires email, we use a default as we are an anonymous Web3 app
-    setIsProcessing(true);
-    initializePayment({
-      onSuccess: async (reference: any) => {
-        try {
-           setIsProcessing(true);
-           await verifyPaystackPayment(reference.reference);
-           await loadHistory();
-           router.push(`/deposit/status?status=success&amount=${amount}&reference=${reference.reference}`);
-        } catch (err: any) {
-           console.error("Verification error:", err);
-           router.push(`/deposit/status?status=error&message=${encodeURIComponent(err.message)}&reference=${reference.reference}`);
-        } finally {
-           setIsProcessing(false);
-        }
-      },
-      onClose: () => {
-        setIsProcessing(false);
-        console.log("Payment window closed.");
-      }
-    });
+  const handleDepositSuccess = async () => {
+    await loadHistory();
   };
 
   return (
@@ -147,17 +97,15 @@ export default function DepositPage() {
 
             {/* Submit Button */}
             <div className="pt-4">
-              <button 
-                type="button" 
-                onClick={handleDeposit}
-                disabled={!connected || isProcessing || !amount || !paymentMethod}
-                className="w-full bg-primary flex justify-center items-center text-on-primary font-bold text-lg py-4 rounded hover:brightness-110 disabled:opacity-50 transition-all"
-              >
-                {isProcessing ? (
-                  <span className="animate-spin material-symbols-outlined mr-2">refresh</span>
-                ) : null}
-                {!connected ? "Connect Wallet" : isProcessing ? "Initializing..." : "Proceed to Payment"}
-              </button>
+              <DepositButton 
+                amount={amount}
+                paymentMethod={paymentMethod}
+                publicKey={publicKey}
+                connected={connected}
+                isProcessing={isProcessing}
+                setIsProcessing={setIsProcessing}
+                onSuccess={handleDepositSuccess}
+              />
               {!connected && (
                 <p className="text-center text-error text-xs mt-3 uppercase tracking-wideset font-mono">
                   Wallet connection required to deposit.
@@ -195,7 +143,7 @@ export default function DepositPage() {
                     </td>
                   </tr>
                 ) : (
-                  deposits.map((d) => (
+                  deposits.map((d: DepositDTO) => (
                     <tr key={d.id} className="hover:bg-surface-container-highest/30 transition-colors">
                       <td className="px-6 py-4 text-on-surface">
                         {new Date(d.createdAt).toLocaleDateString()}
