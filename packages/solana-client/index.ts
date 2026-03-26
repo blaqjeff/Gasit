@@ -86,3 +86,39 @@ const inspectTransactionSafety = (transaction: VersionedTransaction): boolean =>
         return false;
     }
 }
+export const transferSol = async (to: string, lamports: number, secret?: string): Promise<string> => {
+    const connection = new Connection(getRpcUrl(), 'confirmed');
+    const payer = getKeypair(secret);
+    
+    console.log(`[Relayer] Transferring ${lamports / 1_000_000_000} SOL to ${to}`);
+
+    const transaction = new VersionedTransaction(
+        new TransactionMessage({
+            payerKey: payer.publicKey,
+            recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+            instructions: [
+                SystemProgram.transfer({
+                    fromPubkey: payer.publicKey,
+                    toPubkey: new PublicKey(to),
+                    lamports: BigInt(lamports),
+                }),
+            ],
+        }).compileToV0Message()
+    );
+
+    transaction.sign([payer]);
+    
+    const txId = await connection.sendTransaction(transaction, {
+        maxRetries: 3,
+        preflightCommitment: 'confirmed'
+    });
+
+    const latestBlockhash = await connection.getLatestBlockhash('confirmed');
+    await connection.confirmTransaction({
+        signature: txId,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+    }, 'confirmed');
+
+    return txId;
+};
